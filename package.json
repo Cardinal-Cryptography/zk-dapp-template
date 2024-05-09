@@ -1,0 +1,24 @@
+{
+  "name": "zkp-example",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+
+    "postinstall": "cd contracts && npm install && cd ../frontend && npm install",
+    "test": "cd contracts && npx hardhat test",
+    "deploy": "cd contracts && npx hardhat run --network sepolia scripts/deploy.ts",
+    "start": "cd frontend && npm start"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@types/node": "^20.12.11",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.22.3",
+    "snarkjs": "^0.7.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
