@@ -4,15 +4,12 @@ import { RsaChallenge__factory } from './types';
 // @ts-ignore
 import * as snarkjs from 'snarkjs';
 
-const CONTRACT_ADDRESS
- = ''; // replace with your contract's address
+const CONTRACT_ADDRESS = '0xd0EFA8719c3931129bd974273F3984aCfCeebB90'; // replace with your contract's address
 
-
-const provider = new ethers.BrowserProvider((window as any).ethereum);
 
 await (window as any).ethereum.request({
   method: 'wallet_addEthereumChain',
-  params: [{ 
+  params: [{
     chainId: '0xaa36a7',
     chainName: 'Sepolia',
     nativeCurrency: {
@@ -32,13 +29,32 @@ await (window as any).ethereum.request({
 function RsaChallengeComponent() {
   const [challengesCount, setChallengesCount] = useState(BigInt(0));
   const [challengesSolved, setChallengesSolved] = useState<boolean[]>([]);
+  const [WalletInitialized, setWalletInitialized] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
 
   const [challenges, setChallenges] = useState<BigInt[]>([]);
 
   useEffect(() => {
+    async function invokeWallet() {
+      try {
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const signer = await provider.getSigner();
+        setWalletInitialized(true);
+      } catch (error) {
+      }
+    }
+    invokeWallet();
+  })
+
+  useEffect(() => {
     async function fetchChallengesCount() {
+      if (!WalletInitialized) {
+        console.log('Wallet is not initialized yet.');
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
       const rsaChallengeContract = RsaChallenge__factory.connect(CONTRACT_ADDRESS
         , signer);
@@ -58,8 +74,9 @@ function RsaChallengeComponent() {
       setChallengesSolved(challengesSolved);
     }
 
+
     fetchChallengesCount();
-  }, [isLoading]);
+  }, [isLoading, WalletInitialized]);
 
 
   const [selectedChallenge, setSelectedChallenge] = useState('');
@@ -97,8 +114,8 @@ function RsaChallengeComponent() {
     const signer = await provider.getSigner();
     const rsaChallengeContract = RsaChallenge__factory.connect(CONTRACT_ADDRESS
       , signer);
-    
-    const {proof} = await snarkjs.groth16.fullProve(
+
+    const { proof } = await snarkjs.groth16.fullProve(
       {
         a,
         b
@@ -108,39 +125,47 @@ function RsaChallengeComponent() {
     );
 
     console.log('Sending proof');
-    const tx = await rsaChallengeContract.solveChallenge(selectedChallenge, 
+    const tx = await rsaChallengeContract.solveChallenge(selectedChallenge,
       [proof.pi_a[0], proof.pi_a[1], proof.pi_b[0][1], proof.pi_b[0][0], proof.pi_b[1][1], proof.pi_b[1][0], proof.pi_c[0], proof.pi_c[1]]
     );
     console.log(`Transaction ID: ${tx.hash}`);
     await tx.wait();
     console.log('waited enough');
     setIsLoading(false);
-    
+
   };
 
   return (
+
     <div>
-      <h1>RSA Challenge</h1>
-      <p>Challenges count: {challengesCount.toString()}</p>
-      <ul>
-        {challenges.map((challenge, index) => (
-          <li key={index} style={{ textDecoration: challengesSolved[index] ? 'line-through' : 'none' }}>
-            {challenge.toString()}
-          </li>
-        ))}
-      </ul>
-      <div>
-        <select value={selectedChallenge} onChange={handleChallengeChange}>
-          {challenges.map((challenge, index) => (
-            !challengesSolved[index] && <option key={index} value={challenge.toString()}>{challenge.toString()}</option>
-          ))}
-        </select>
-        =
-        <input type="number" placeholder="a" value={a} onChange={handleAChange} />
-        *
-        <input type="number" placeholder="b" value={b} onChange={handleBChange} />
-        <button onClick={handleSubmit}>Submit</button>
-      </div>
+      {WalletInitialized ?
+        <div>
+          <h1>RSA Challenge</h1>
+          <p>Challenges count: {challengesCount.toString()}</p>
+          <ul>
+            {challenges.map((challenge, index) => (
+              <li key={index} style={{ textDecoration: challengesSolved[index] ? 'line-through' : 'none' }}>
+                {challenge.toString()}
+              </li>
+            ))}
+          </ul>
+          <div>
+            <select value={selectedChallenge} onChange={handleChallengeChange}>
+              {challenges.map((challenge, index) => (
+                !challengesSolved[index] && <option key={index} value={challenge.toString()}>{challenge.toString()}</option>
+              ))}
+            </select>
+            =
+            <input type="number" placeholder="a" value={a} onChange={handleAChange} />
+            *
+            <input type="number" placeholder="b" value={b} onChange={handleBChange} />
+            <button onClick={handleSubmit}>Submit</button>
+          </div>
+        </div> :
+        <div>
+          <h1>Connect Wallet!</h1>
+        </div>
+      }
     </div>
   );
 }

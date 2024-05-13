@@ -1,8 +1,6 @@
 import hre from "hardhat";
 
 async function main() {
-  const accounts = await hre.ethers.getSigners();
-  console.log(accounts);
   const Verifier = await hre.ethers.getContractFactory("Groth16Verifier");
   console.log('deploying verifier');
   const verifier = await Verifier.deploy();
